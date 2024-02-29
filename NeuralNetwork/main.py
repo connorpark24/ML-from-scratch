@@ -1,55 +1,11 @@
 import numpy as np
 import nnfs
 from nnfs.datasets import spiral_data
+from activation_function import Activation_ReLU
+from loss import Loss_CategoricalCrossEntropy
+from optimizer import Optimizer_SGD
 
 nnfs.init()
-
-class Activation_ReLU:
-
-    def __init__(self):
-        pass
-
-    def forward(self, inputs):
-        self.inputs = inputs
-        self.output = np.maximum(0, inputs)
-    
-    def backward(self, dvalues):
-        self.dinputs = dvalues.copy()
-        self.dinputs[self.inputs <= 0] = 0
-
-class Optimizer_SGD:
-
-    def __init__(self, learning_rate=0.1):
-        self.learning_rate = learning_rate
-
-    def update_params(self, layer):
-        # Update weights and biases according to backpropagation
-        layer.weights += -self.learning_rate * layer.dweights
-        layer.biases += -self.learning_rate * layer.dbiases
-    
-class Loss_CategoricalCrossEntropy:
-
-    def forward(self, y_pred, y_true):
-        samples = len(y_pred)
-        y_pred_clipped = np.clip(y_pred, 1e-7, 1 - 1e-7)
-
-        correct_confidences = y_pred_clipped[range(samples), y_true]
-        negative_log_likelihoods = -np.log(correct_confidences)
-        return np.mean(negative_log_likelihoods)
-    
-    def backward(self, dvalues, y_true):
-        samples = len(dvalues)
-        labels = len(dvalues[0])
-
-        # If y_true is not one-hot encoded, we convert it here
-        if len(y_true.shape) == 1:
-            y_true = np.eye(labels)[y_true]
-
-        # Calculate and normalize gradient
-        self.dinputs = dvalues - y_true
-        self.dinputs = self.dinputs / samples
-
-        return self.dinputs
 
 class Layer_Dense:
     
@@ -98,13 +54,12 @@ class NeuralNetwork:
             dvalues = self.loss_function.backward(inputs, y)
             for layer in reversed(self.layers):
                 layer.backward(dvalues)
-                if hasattr(layer, 'dinputs'):  # Check if the layer has 'dinputs' attribute to continue backward pass
-                    dvalues = layer.dinputs
+                dvalues = layer.dinputs
 
             # Update parameters
             for layer in self.layers:
                 if hasattr(layer, 'weights'):
-                    self.optimizer.update_params(layer)
+                    self.optimizer.update_params(layer)  # don't optimize on activation layers
 
     def predict(self):
         for layer in self.layers:
