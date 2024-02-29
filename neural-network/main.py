@@ -59,7 +59,7 @@ class NeuralNetwork:
             # Update parameters
             for layer in self.layers:
                 if hasattr(layer, 'weights'):
-                    self.optimizer.update_params(layer)  # don't optimize on activation layers
+                    self.optimizer.update_params(layer)  # Don't optimize on activation layers
 
     def predict(self):
         for layer in self.layers:
